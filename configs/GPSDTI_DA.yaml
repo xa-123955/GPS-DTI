@@ -1,0 +1,25 @@
+SOLVER:
+  BATCH_SIZE: 32
+  MAX_EPOCH: 50
+  LR: 5e-5
+  DA_LR: 1e-4
+  SEED: 42
+
+DA:
+  TASK: True
+  USE: False
+  METHOD: "CDAN"
+  USE_ENTROPY: False
+  RANDOM_LAYER: True
+  ORIGINAL_RANDOM: True
+  RANDOM_DIM: 256
+  INIT_EPOCH: 10
+
+DECODER:
+  BINARY: 2
+
+# Config below only when you use comet
+COMET:
+  PROJECT_NAME: "GPSDTI_CDAN"
+  TAG: "DA"
+
