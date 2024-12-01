@@ -113,52 +113,7 @@ def bond_features(bond, use_chirality=True):
     return np.array(bond_feats).astype(int)
 
 
-def smiles_to_graph(smiles, explicit_H=False, use_chirality=True):
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-    except:
-        raise RuntimeError("SMILES cannot been parsed!")
-    g = dgl.DGLGraph()
-    # Add nodes
-    num_atoms = mol.GetNumAtoms()
-    g.add_nodes(num_atoms)
 
-    atom_feats = np.array([atom_features(a, explicit_H=explicit_H) for a in mol.GetAtoms()])
-    if use_chirality:
-        chiralcenters = Chem.FindMolChiralCenters(mol, force=True, includeUnassigned=True,
-                                                  useLegacyImplementation=False)
-        chiral_arr = np.zeros([num_atoms, 3])
-        for (i, rs) in chiralcenters:
-            if rs == 'R':
-                chiral_arr[i, 0] = 1
-            elif rs == 'S':
-                chiral_arr[i, 1] = 1
-            else:
-                chiral_arr[i, 2] = 1
-        atom_feats = np.concatenate([atom_feats, chiral_arr], axis=1)
-
-    g.ndata["atom"] = torch.tensor(atom_feats, dtype=torch.float32)
-
-    # Add edges
-    src_list = []
-    dst_list = []
-    bond_feats_all = []
-    num_bonds = mol.GetNumBonds()
-    for i in range(num_bonds):
-        bond = mol.GetBondWithIdx(i)
-        u = bond.GetBeginAtomIdx()
-        v = bond.GetEndAtomIdx()
-        bond_feats = bond_features(bond, use_chirality=use_chirality)
-        src_list.extend([u, v])
-        dst_list.extend([v, u])
-        bond_feats_all.append(bond_feats)
-        bond_feats_all.append(bond_feats)
-
-    g.add_edges(src_list, dst_list)
-
-    g.edata["bond"] = torch.tensor(np.array(bond_feats_all), dtype=torch.float32)
-    g = laplacian_positional_encoding(g, pos_enc_dim=8)
-    return g
 
 class DTIDataset(data.Dataset):
     def __init__(self, list_IDs, df, max_drug_nodes=290):
