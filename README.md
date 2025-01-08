@@ -48,13 +48,13 @@ Below are the key libraries and their versions:
     pip install prettytable
 ```
 
-3.Clone the repository:
+3. Clone the repository:
 
     git clone https://github.com/xa-123955/GPS-DTI.git
 
     cd GPS-DTI
 
-2.Install the required libraries:
+2. Install the required libraries:
 
     pip install -r requirements.txt
 
