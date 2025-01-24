@@ -1,5 +1,4 @@
-# GPS-DTI: An interpretable geometric graph neural network for drug–target interaction prediction
-
+# GPS-DTI: An interpretable geometric graph neural network for enhancing the generalizability of drug–target interaction prediction
 ## Requirements
 
 
