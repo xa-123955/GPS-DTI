@@ -4,6 +4,7 @@ import torch
 import math
 from transformers import AutoTokenizer, EsmModel
 from GPS import GPS
+# Use CUDA if available, otherwise fallback to CPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class DynamicMaxPool1d(nn.Module):
@@ -81,14 +82,17 @@ class GPSDTI(nn.Module):
         return out
 
     def forward(self, bg_d, v_p, mode="train"):
+        # Extract graph data for drug
         x =bg_d.ndata['atom']
         pe=bg_d.ndata['lap_pos_enc']
         edge_index = torch.stack((bg_d.edges()[0], bg_d.edges()[1]), 0)
         edge_attr=bg_d.edata['bond']
         batch = torch.cat([torch.full((1, x.type(torch.int)), y) for x, y in zip(bg_d.batch_num_nodes(), range(bg_d.batch_size))],
                        dim=1).reshape(-1).type(torch.long).to(bg_d.device)
+        # GPS model forward pass for drug features
         v_d = self.gps(x,pe,edge_index,edge_attr,batch)
         v_d = self.dgl_split(bg_d, v_d)
+        # Pretrained protein model (ESM) to get protein embeddings
         with torch.no_grad():
             inputs = self.tokenizer(v_p,max_length=1000, padding="max_length",return_tensors="pt").to(device)
             outputs = self.model(**inputs)
