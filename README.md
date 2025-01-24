@@ -67,7 +67,7 @@ Make sure your dataset is in the correct format with two columns: drug and targe
 
 2. Train the Model
 
-For the experiments with vanilla DrugBAN, you can directly run the following command. ${dataset} could either be bindingdb, biosnap ,C.elegans and human. ${split_task} could be random , cold and cluster.
+For the experiments with vanilla GPS-DTI, you can directly run the following command. ${dataset} could either be bindingdb, biosnap ,C.elegans and human. ${split_task} could be random , cold and cluster.
 
 Run the following command to start the training process:
 
