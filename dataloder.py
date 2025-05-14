@@ -112,32 +112,56 @@ def bond_features(bond, use_chirality=True):
             ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"])
     return np.array(bond_feats).astype(int)
 
-
-
-
 class DTIDataset(data.Dataset):
-    def __init__(self, list_IDs, df, max_drug_nodes=290):
+    def __init__(self, list_IDs, df, protein_feature_path, max_drug_nodes=290):
+        """
+        Args:
+            list_IDs (list): List of indices for dataset access.
+            df (pd.DataFrame): DataFrame containing the DTI data (SMILES, UniProt ID, Label).
+            protein_feature_path (str): Path to the HDF5 file containing protein features.
+            max_drug_nodes (int): Maximum number of nodes allowed in the drug graph.
+        """
         self.list_IDs = list_IDs
         self.df = df
         self.max_drug_nodes = max_drug_nodes
+        self.protein_feature_path = protein_feature_path
+        # Functions for drug graph construction
         self.smiles_to_graph_func = smiles_to_graph
         self.atom_featurizer = CanonicalAtomFeaturizer()
         self.bond_featurizer = CanonicalBondFeaturizer(self_loop=True)
         self.fc = partial(smiles_to_bigraph, add_self_loop=True)
 
     def __len__(self):
+        """Return the total number of samples."""
         return len(self.list_IDs)
 
-    def __getitem__(self, index):#处理药物SMILES和蛋白质序列数据 SMILES,Protein,Y,smiles,sequence,interactions
+    def __getitem__(self, index):
+        """
+        Retrieve one sample of data.
+        Returns:
+            v_d: Graph representation of the drug molecule.
+            v_p: Precomputed protein feature vector (from ESM-2).
+            y: Label (interaction or affinity score).
+        """
+        # Get sample index
         index = self.list_IDs[index]
-        v_d = self.df.iloc[index]['SMILES']
-        v_d = self.smiles_to_graph_func(v_d)
-        # v_d = dgl.add_self_loop(v_d)
-        v_p = self.df.iloc[index]['Protein']
-        v_p = preprocess_sequence(v_p)
-        # v_p = integer_label_protein(v_p)
-        y = self.df.iloc[index]["Y"]
-        return v_d, v_p, y
+
+        # Read SMILES and UniProt ID
+        smiles = self.df.iloc[index]['SMILES']
+        protein_id = self.df.iloc[index]['Uniport_ID']
+
+        # Load protein features from HDF5 file (on-demand loading)
+        with h5py.File(self.protein_feature_path, 'r') as f:
+            v_p = f['proteins'][protein_id][:]  # Load the corresponding protein feature
+
+        # Convert SMILES string into graph object
+        v_d = self.smiles_to_graph_func(smiles)
+
+        # Get label (binary or regression)
+        y = self.df.iloc[index]['Label']
+
+        return v_d, v_p[0], y 
+
 
 
 class MultiDataLoader(object):
