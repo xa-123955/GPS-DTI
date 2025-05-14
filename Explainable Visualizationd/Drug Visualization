@@ -1,0 +1,82 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from rdkit import Chem
+from rdkit.Chem import Draw
+from rdkit.Chem.Draw import rdMolDraw2D
+
+def create_molecule_from_smiles(smiles):
+    """
+    Create an RDKit molecule object from a SMILES string.
+    """
+    return Chem.MolFromSmiles(smiles)
+
+def draw_molecule_with_attention(mol, attention_matrix):
+    """
+    Visualize a molecule with per-atom attention scores using RDKit.
+    
+    Args:
+        mol: RDKit molecule object.
+        attention_matrix: An n x n attention matrix (e.g., from a transformer), where n is the number of atoms.
+
+    Description:
+        - This function averages each row of the attention matrix to compute atom-level attention.
+        - The atoms are colored based on normalized attention values using an orange color scale.
+        - The image is saved as a PNG and displayed using matplotlib.
+    """
+    # Compute average attention for each atom
+    atom_attention = attention_matrix.mean(axis=1)
+
+    # Normalize the attention values to [0, 1]
+    norm = plt.Normalize(vmin=atom_attention.min(), vmax=atom_attention.max())
+
+    # Generate 2D coordinates for drawing
+    Chem.rdDepictor.Compute2DCoords(mol)
+
+    # Initialize RDKit Cairo drawer
+    drawer = rdMolDraw2D.MolDraw2DCairo(500, 500)
+    drawer.drawOptions().padding = 0.2
+
+    # Define a base color (orange), then assign alpha values based on attention
+    base_color = (1, 0.5, 0)  # RGB for orange
+    atom_colors = {i: base_color + (norm(att),) for i, att in enumerate(atom_attention)}  # RGBA
+
+    # Draw the molecule with colored atoms and fixed highlight radii
+    drawer.DrawMolecule(
+        mol,
+        highlightAtoms=atom_colors.keys(),
+        highlightAtomColors=atom_colors,
+        highlightAtomRadii={i: 0.5 for i in atom_colors.keys()}
+    )
+    drawer.FinishDrawing()
+
+    # Save the image to a file
+    img = drawer.GetDrawingText()
+    with open("temp.png", "wb") as f:
+        f.write(img)
+
+    # Display the image using matplotlib
+    img = plt.imread("temp.png")
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(img)
+    ax.axis('off')
+
+    # Optional: Annotate atoms with their indices (for clarity)
+    for i, atom in enumerate(mol.GetAtoms()):
+        pos = mol.GetConformer().GetAtomPosition(i)
+        ax.text(pos.x * 30 + 260, pos.y * 30 + 250, str(i),
+                fontsize=12, ha='center', va='center',
+                color='black', fontweight='bold')
+
+    plt.show()
+
+# Example SMILES: a small molecule (e.g., Ibuprofen-like structure)
+smiles = "CC(C)C1=CC=C(C=C1)C(C)C(=O)O"
+
+# Convert SMILES to RDKit molecule
+mol = create_molecule_from_smiles(smiles)
+
+# Example attention matrix: randomly generated (size: num_atoms x num_atoms)
+attention_matrix = np.random.rand(mol.GetNumAtoms(), mol.GetNumAtoms())
+
+# Call the function to visualize atom-level attention
+draw_molecule_with_attention(mol, attention_matrix)
