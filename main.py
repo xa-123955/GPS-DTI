@@ -22,8 +22,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parser = argparse.ArgumentParser(description="GPS-DTI for DTI prediction")
 parser.add_argument('--cfg',  help="path to config file", type=str)
-parser.add_argument('--data',  type=str, metavar='TASK', help='dataset')
-parser.add_argument('--split', type=str, metavar='S', help="split task", choices=['random', 'cold', 'cluster'])
+parser.add_argument('--data',  type=str, metavar='TASK', help='dataset', choices=['human', 'bindingdb', 'celeans', 'drugbank', 'covid19'])
+parser.add_argument('--split', type=str, metavar='S', help="split task", choices=['fold5', 'cluster''cold_pair','cold_drug','cold_target'])
 
 
 
