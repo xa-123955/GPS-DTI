@@ -1,0 +1,74 @@
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler
+
+# ------------------ Step 1: Extract attention scores ------------------
+# att_wp shape: [1, 1000, D] -> batch size 1, padded protein length 1000, D attention dimensions
+# Protein sequences are padded to length 1000, so we only extract attention for the actual sequence length
+
+real_length = 262  # The true length of the protein sequence (must be provided per sample)
+
+# Compute max attention over the last dimension (D), result shape: [1, 1000]
+att_pd, _ = torch.max(att_wp, dim=2)
+
+# Slice only the valid part of the protein sequence (real_length)
+att_pd = att_pd[:, :real_length].cpu().numpy()  # Shape: (1, real_length)
+
+# Transpose to shape (real_length, 1) for vertical heatmap
+att_pd = att_pd.T
+
+# ------------------ Step 2: Normalize attention values ------------------
+# Normalize attention values to the [0, 1] range using Min-Max scaling
+scaler = MinMaxScaler()
+att_pd_normalized = scaler.fit_transform(att_pd)  # Shape: (real_length, 1)
+
+# ------------------ Step 3: Plot full protein attention heatmap ------------------
+plt.figure(figsize=(10, 200), dpi=300)  # Adjust figure size based on sequence length
+ax_full = sns.heatmap(att_pd_normalized, cmap='coolwarm', vmin=0, vmax=1.0, cbar=True)
+
+# Configure color bar
+colorbar = ax_full.collections[0].colorbar
+colorbar.ax.yaxis.set_tick_params(rotation=90)
+
+# Customize axis labels
+ax_full.set_xticks([])
+ax_full.set_xlabel('Drug', fontsize=20)
+ax_full.set_ylabel('Protein sequence (position)', fontsize=20)
+
+# Rotate tick labels
+plt.xticks(rotation=90)
+plt.yticks(rotation=90)
+
+# Save the full heatmap
+plt.savefig('protein_full.jpg', dpi=300)
+plt.close()
+
+# ------------------ Step 4: Optional - Plot a zoomed-in region ------------------
+# Useful when the full sequence is too long to interpret in detail
+plot_start = 180
+plot_end = 220
+
+# Make sure the zoomed region does not exceed the actual sequence length
+if plot_end <= real_length:
+    plt.figure(figsize=(4, 20), dpi=300)
+    ax_zoom = sns.heatmap(att_pd_normalized[plot_start:plot_end], cmap='coolwarm', vmin=0, vmax=1.0, cbar=True)
+
+    # Customize axis labels
+    ax_zoom.set_xticks([])
+    ax_zoom.set_xlabel('Drug', fontsize=20)
+    ax_zoom.set_ylabel(f'Protein positions {plot_start}–{plot_end}', fontsize=20)
+
+    # Set font size for tick labels
+    for label in (ax_zoom.get_xticklabels() + ax_zoom.get_yticklabels()):
+        label.set_fontsize(25)
+
+    # Rotate colorbar labels
+    colorbar = ax_zoom.collections[0].colorbar
+    colorbar.ax.yaxis.set_tick_params(rotation=90)
+
+    # Save the partial (zoomed-in) heatmap
+    plt.savefig('protein_partial.jpg', dpi=300)
+    plt.close()
+
